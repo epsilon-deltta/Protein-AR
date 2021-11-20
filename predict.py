@@ -44,21 +44,28 @@ def get_seqStr(path = './data/sample.txt'):
     x_list = list(map(lambda x:x.replace('\n',''),x_list ) )
     return x_list
 
+def seq2int(seq):
+    seq2int = [ vocab_map[x] for x in seq ]
+    seq2int = torch.tensor(seq2int)
+    # seq_tensor = torch.stack(seq)
+    return seq2int
+
 def seq2oneHot(seq):
     seq2int = [ vocab_map[x] for x in seq ]
     seq2int = torch.tensor(seq2int)
     oneHot = F.one_hot(seq2int,num_classes=len(vocab_map) )
     return oneHot
 
+def seq_list2int(seq_list):
+    tensor_list = list(map(seq2int,seq_list))
+    seq_tensor = torch.stack(tensor_list)
+    return seq_tensor
 def seq_list2oneHot(seq_list):
     tensor_list = list(map(seq2oneHot,seq_list))
     seq_tensor = torch.stack(tensor_list)
     return seq_tensor
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-seq_list = get_seqStr(path=args.dataset)
-x = seq_list2oneHot(seq_list).to(device)
 
 # Load model 
 import os
@@ -67,20 +74,15 @@ m_path     = args.model
 model_name = os.path.basename(m_path).split('_')[0]
 model_name = model_name.lower()
 
-model = model_name
+model,transform = get_model(model_name)
+model = model.to(device)
 
-model = model.lower()
-if model.startswith('maxfil') :
-    model = MaxFilterCNN().to(device)
-elif model.startswith('resnet'):
-    model = ResNet().to(device)
-elif model.startswith('resnext'):
-    model = ResNext().to(device)
-elif model.startswith('attn'):
-    model = attns().to(device)
-elif model.startswith('lstm'):
-    model = lstm().to(device)
+seq_list = get_seqStr(path=args.dataset)
 
+if transform == 'onehot':
+    x = seq_list2oneHot(seq_list).to(device)
+elif transform is None:
+    x = seq_list2int(seq_list).to(device)
 
 model.load_state_dict(torch.load(m_path))
 
@@ -99,6 +101,6 @@ if args.output is None:
     savep   = os.path.join(dirname,f'{fname}_out.csv')
 else:
     savep = args.output
-    
+print(y)
 with open(savep,'w') as f:
     f.write('\n'.join(y) )
