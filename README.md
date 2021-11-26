@@ -47,6 +47,6 @@ path: ./data/split/{train|val|test}.csv
 |0  |ResNet18(full-release)| 83.45|0.005957|
 |1  | ResNext((full-release))   |83.75|0.00598|
 |2  | MaxFilterCNN|84.54 |0.002926|
-|3  | LSTM|     x||
+|3  | LSTM|     0.8492|0.005627|
 |4  |Self-attention|0.8538|0.005515|
 <!-- |5  ||✔ | -->
