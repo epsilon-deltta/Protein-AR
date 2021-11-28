@@ -1,6 +1,13 @@
 # Protein-AR
 Protein Antibody Reaction
 
+## Usage 
+```
+python train.py -m attn # you can choose one in {attn,maxfil,lstm,resnet,resnext}
+
+```
+
+
 ## Dataset
 x: seq, y: label (0,1)
 e.g.,) 
@@ -42,11 +49,28 @@ path: ./data/split/{train|val|test}.csv
 
 ## Model
 
-|i|model | Acc| loss|
-|---|--------| ----|---|
-|0  |ResNet18(full-release)| 83.45|0.005957|
-|1  | ResNext((full-release))   |83.75|0.00598|
-|2  | MaxFilterCNN|84.54 |0.002926|
-|3  | LSTM|     0.8492|0.005627|
-|4  |Self-attention|0.8538|0.005515|
+|i|model|alias | Acc| loss|
+|---|--------|---| ----|---|
+|0  |ResNet18(full-release)|resnet| 83.45|0.005957|
+|1  | ResNext((full-release))   |resnext|83.75|0.00598|
+|2  | MaxFilterCNN|maxfil|84.54 |0.002926|
+|3  | LSTM|lstm|     0.8492|0.005627|
+|4  |Self-attention|attn|0.8538|0.005515|
 <!-- |5  ||✔ | -->
+
+
+## Experiment results
+
+|              |      acc |   recall |   precision |       f1 | confusion     |       loss |
+|:-------------|---------:|---------:|------------:|---------:|:--------------|-----------:|
+| maxfiltercnn | 0.836104 | 0.689273 |    0.759648 | 0.722752 | [[4531  492]  | 0.00586439 |
+|              |          |          |             |          |  [ 701 1555]] |            |
+| lstm         | 0.849292 | 0.744238 |    0.763529 | 0.75376  | [[4503  520]  | 0.00563471 |
+|              |          |          |             |          |  [ 577 1679]] |            |
+| attns        | 0.85259  | 0.74734  |    0.770215 | 0.758605 | [[4520  503]  | 0.00551119 |
+|              |          |          |             |          |  [ 570 1686]] |            |
+| resnext      | 0.826762 | 0.592642 |    0.796307 | 0.679543 | [[4681  342]  | 0.00625525 |
+|              |          |          |             |          |  [ 919 1337]] |            |
+| resnet       | 0.837752 | 0.651596 |    0.788204 | 0.713419 | [[4628  395]  | 0.00599108 |
+|              |          |          |             |          |  [ 786 1470]] |            |
+
