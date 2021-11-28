@@ -97,7 +97,7 @@ class ProteinDataset(torch.utils.data.Dataset):
         return seq2int
     
     def seq2oneHot(self,seq): # 'ABCDE..' -> OneHot (10,20) 
-        seq2int = self.seq2seq_int(seq)
+        seq2int = self.seq2int(seq)
         oneHot = F.one_hot(seq2int,num_classes=len(vocab_map) )
         return oneHot
     

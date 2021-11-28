@@ -184,3 +184,33 @@ class attns0(nn.Module):
         x = self.fc(x)        # b,2
         return x
         
+def get_model(model:str= 'attn'):
+    model = model.lower()
+    transform ='onehot'
+    if model.startswith('maxfil'):
+        model = MaxFilterCNN()
+        transform = 'onehot'
+    elif model.startswith('resnet'):
+        model = ResNet()
+        transform = 'onehot'
+    elif model.startswith('resnext'):
+        model = ResNext()
+        transform = 'onehot'
+        
+    elif model.startswith('attn'):
+        if (model == 'attn') | (model == 'attns') :
+            transform = 'onehot'
+            model = attns()
+        elif model == 'attns0':
+            transform = None
+            model = attns0()
+    elif model.startswith('lstm'):
+        if model == 'lstm':
+            model = lstm()
+            transform = 'onehot'
+        elif model == 'lstm0':
+            model = lstm0()
+            transform = None
+    else:
+        raise ValueError(f"There is no '{model}' ")
+    return model,transform

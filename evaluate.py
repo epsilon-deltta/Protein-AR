@@ -7,13 +7,15 @@ parser = argparse.ArgumentParser("Evaluate models",epilog=exam_code)
 
 
 parser.add_argument('-d'  ,'--directory'   ,default='models' ,metavar='{...}'    ,help='directory path containing the models')
-# parser.add_argument('-p'  ,'--path'      ,default=None       , help='Specify the model')
+parser.add_argument('-p'  ,'--path'      ,default=None       , help='Specify the model path')
 parser.add_argument('--dataset_path'      ,default='./data/split/test.csv'  , help='test dataset path')
+parser.add_argument('-s','--save'      ,default=True  , help='whether to save')
 args = parser.parse_args()
 
 
-
-# dataset and loader
+# dataset class
+# model
+# evaluate
 
 def get_vocab_map(vocab_path='./data/vocab.txt'):
     with open(vocab_path,'r') as f:
@@ -34,19 +36,26 @@ def get_vocab_map(vocab_path='./data/vocab.txt'):
 vocab_map =get_vocab_map()
 
 import torch
-from torch import nn
 from torch.nn import functional as F
 import pandas as pd
 class ProteinDataset(torch.utils.data.Dataset):
-    def __init__(self,path):
-        self.df = pd.read_csv(path)
-
+    def __init__(self,path,transform='oneHot'):
+        self.df        = pd.read_csv(path)
+        if type(transform) == str:
+            self.transform = transform.lower()
+        else:
+            self.transform = transform
+        
     def __getitem__(self,idx):
         item = self.df.iloc[idx]
         x = item['seq']
         y = item['label']
         
-        x = self.seq2oneHot(x)
+        if self.transform == 'onehot':
+            x = self.seq2oneHot(x)
+        elif self.transform is None:
+            x = self.seq2int(x)
+            
         y = torch.tensor(y)
         # y = self.label2oneHot(y)
         return x,y
@@ -54,34 +63,18 @@ class ProteinDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.df)
     
-    def seq2oneHot(self,seq):
+    def seq2int(self,seq):
         seq2int = [ vocab_map[x] for x in list(seq) ]
         seq2int = torch.tensor(seq2int)
+        return seq2int
+    
+    def seq2oneHot(self,seq): # 'ABCDE..' -> OneHot (10,20) 
+        seq2int = self.seq2int(seq)
         oneHot = F.one_hot(seq2int,num_classes=len(vocab_map) )
         return oneHot
     
     def label2oneHot(self,label):
         return F.one_hot(torch.tensor(label),num_classes=2)
-    
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-tedt  = ProteinDataset(args.dataset_path)
-tedl  = torch.utils.data.DataLoader(tedt, batch_size=64, num_workers=4)
-
-# setting
-
-loss = nn.CrossEntropyLoss()
-
-import os
-files = os.listdir(args.directory)
-
-model_paths = [os.path.join('./models',file) for file in files if file.endswith('.pt')]
-
-import os
-from models import * 
-results = {}
-
-# evaluate 
 from sklearn.metrics import accuracy_score 
 from sklearn.metrics import recall_score 
 from sklearn.metrics import precision_score 
@@ -114,24 +107,29 @@ def evaluate(dl,model,lossf,epoch=None):
     metrics = {'acc':acc,'recall':recall,'precision':precision,'f1':f1,'confusion':confusion,'loss':loss}
     return metrics
 
-for m_path in model_paths:
-    model_name = os.path.basename(m_path).split('_')[0]
-    model_name = model_name.lower()
-    
-    model = model_name
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    model = model.lower()
-    if model.startswith('maxfil') :
-        model = MaxFilterCNN().to(device)
-    elif model.startswith('resnet'):
-        model = ResNet().to(device)
-    elif model.startswith('resnext'):
-        model = ResNext().to(device)
-    elif model.startswith('attn'):
-        model = attns().to(device)
-    elif model.startswith('lstm'):
-        model = lstm().to(device)
+from models import *
+import os
+results = {}
+model_paths = []
+if args.path is not None:
+    m_path = args.path
+    model_paths.append(m_path)
+    model_name = os.path.basename(m_path).split('_')[0].lower()
+    print(model_name)
+    # model = 'lstm0'
+    model,transform = get_model(model_name)
+    model = model.to(device)
+
     
+    tedt  = ProteinDataset(args.dataset_path,transform=transform)
+    tedl  = torch.utils.data.DataLoader(tedt, batch_size=64, num_workers=4)
+    
+    loss = nn.CrossEntropyLoss()
+    params = [p for p in model.parameters() if p.requires_grad]
+    opt  = torch.optim.Adam(params)
+
     
     model.load_state_dict(torch.load(m_path))
     
@@ -140,11 +138,36 @@ for m_path in model_paths:
     print(f'{model_name}: {result}')
     results[model_name] = result
 
+else:
+    files = os.listdir(args.directory)
+    model_paths = [os.path.join('./models',file) for file in files if file.endswith('.pt')]
+    
+    for m_path in model_paths:
+        model_name = os.path.basename(m_path).split('_')[0].lower()
+        
+        print(model_name)
+        model,transform = get_model(model_name)
+        model = model.to(device)
+        
+        tedt  = ProteinDataset(args.dataset_path,transform=transform)
+        tedl  = torch.utils.data.DataLoader(tedt, batch_size=64, num_workers=4)
+        
+        loss = nn.CrossEntropyLoss()
+        params = [p for p in model.parameters() if p.requires_grad]
+        opt  = torch.optim.Adam(params)
 
-# save the reuslt as csv file
+        model.load_state_dict(torch.load(m_path))
 
-import pandas as pd
-df  = pd.DataFrame(results).T
-models = [os.path.splitext( os.path.basename(path) )[0] for path in model_paths]
-df.to_csv(f"assets/{'&'.join(models)}.csv")
-print(f"result was saved in assets/{'&'.join(models)}.csv")
+        result = evaluate(tedl,model,loss)
+
+        print(f'{model_name}: {result}')
+        results[model_name] = result
+# save the results
+
+if args.save:
+    import pandas as pd
+    df  = pd.DataFrame(results).T
+    models = [os.path.splitext( os.path.basename(path) )[0] for path in model_paths]
+    df.to_csv(f"assets/{'&'.join(models)}.csv")
+    print(f"result was saved in assets/{'&'.join(models)}.csv")
+    
