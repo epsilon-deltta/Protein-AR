@@ -2,9 +2,12 @@
 Protein Antibody Reaction
 
 ## Usage 
-```
-python train.py -m attn # you can choose one in {attn,maxfil,lstm,resnet,resnext}
+⁕ Build up required environment first.
 
+```
+python train.py -m attn # you can choose one in {attn,maxfil,lstm,resnet,resnext}  
+python evaluate -d ./models/
+python predict.py -d ./data/sample.txt -m ./models/attns_3.pt
 ```
 
 
