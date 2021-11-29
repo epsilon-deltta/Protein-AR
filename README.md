@@ -59,6 +59,12 @@ path: ./data/split/{train|val|test}.csv
 |2  | MaxFilterCNN|maxfil|84.54 |0.002926|
 |3  | LSTM|lstm|     0.8492|0.005627|
 |4  |Self-attention|attn|0.8538|0.005515|
+
+### plan
+- [ ] Vision transformer  
+- [ ] Swin transformer
+- [ ] Deit
+- [ ] Bottleneck transformer
 <!-- |5  ||✔ | -->
 
 
