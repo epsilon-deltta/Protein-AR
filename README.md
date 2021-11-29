@@ -52,20 +52,18 @@ path: ./data/split/{train|val|test}.csv
 
 ## Model
 
-|i|model|alias | Acc| loss|
-|---|--------|---| ----|---|
-|0  |ResNet18(full-release)|resnet| 83.45|0.005957|
-|1  | ResNext((full-release))   |resnext|83.75|0.00598|
-|2  | MaxFilterCNN|maxfil|84.54 |0.002926|
-|3  | LSTM|lstm|     0.8492|0.005627|
-|4  |Self-attention|attn|0.8538|0.005515|
+### types 
 
-### plan
-- [ ] Vision transformer  
-- [ ] Swin transformer
-- [ ] Deit
-- [ ] Bottleneck transformer
-<!-- |5  ||✔ | -->
+model|alias
+
+- ResNet18(full-release)|resnet
+- ResNext((full-release))   |resnext
+- MaxFilterCNN|maxfil
+- LSTM|lstm   (w/ OneHot encoding)
+- LSTM|lstm0  (w/o OneHot encoding) 
+- Self-attention|attns (w/ OneHot encoding)
+- Self-attention|attns0 (w/o OneHot encoding)
+
 
 
 ## Experiment results
@@ -83,3 +81,21 @@ path: ./data/split/{train|val|test}.csv
 | resnet       | 0.837752 | 0.651596 |    0.788204 | 0.713419 | [[4628  395]  | 0.00599108 |
 |              |          |          |             |          |  [ 786 1470]] |            |
 
+- v1 (added lstm0,attns0)
+
+| Unnamed: 0   |      acc |   recall |   precision |       f1 | confusion     |       loss |
+|:-------------|---------:|---------:|------------:|---------:|:--------------|-----------:|
+| maxfiltercnn | 0.836104 | 0.689273 |    0.759648 | 0.722752 | [[4531  492]  | 0.00586439 |
+|              |          |          |             |          |  [ 701 1555]] |            |
+| lstm         | 0.849292 | 0.744238 |    0.763529 | 0.75376  | [[4503  520]  | 0.00563471 |
+|              |          |          |             |          |  [ 577 1679]] |            |
+| lstm0        | 0.818107 | 0.62234  |    0.748401 | 0.679574 | [[4551  472]  | 0.00643181 |
+|              |          |          |             |          |  [ 852 1404]] |            |
+| attns        | 0.85259  | 0.74734  |    0.770215 | 0.758605 | [[4520  503]  | 0.00551119 |
+|              |          |          |             |          |  [ 570 1686]] |            |
+| resnext      | 0.826762 | 0.592642 |    0.796307 | 0.679543 | [[4681  342]  | 0.00625525 |
+|              |          |          |             |          |  [ 919 1337]] |            |
+| resnet       | 0.837752 | 0.651596 |    0.788204 | 0.713419 | [[4628  395]  | 0.00599108 |
+|              |          |          |             |          |  [ 786 1470]] |            |
+| attns0       | 0.786509 | 0.522606 |    0.711957 | 0.602761 | [[4546  477]  | 0.00712849 |
+|              |          |          |             |          |  [1077 1179]] |            |
