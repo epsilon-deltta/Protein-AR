@@ -10,7 +10,38 @@ parser.add_argument('-m'  ,'--model'   ,default='attns' ,metavar='{...}'    ,hel
 
 args = parser.parse_args()
 
+# model load and settings
+from models import *
 
+model = args.model
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
+model = model.lower()
+if model.startswith('maxfil'):
+    model = MaxFilterCNN().to(device)
+elif model.startswith('resnet'):
+    model = ResNet().to(device)
+elif model.startswith('resnext'):
+    model = ResNext().to(device)
+elif model.startswith('attn'):
+    if model == 'attn':
+        transform = 'onehot'
+        model = attns().to(device)
+    elif model == 'attn0':
+        transform = None
+        model = attns0().to(device)
+elif model.startswith('lstm'):
+    if model == 'lstm':
+        model = lstm().to(device)
+        transform = 'onehot'
+    elif model == 'lstm0':
+        model = lstm0().to(device)
+        transform = None
+
+loss = nn.CrossEntropyLoss()
+params = [p for p in model.parameters() if p.requires_grad]
+opt  = torch.optim.Adam(params)
 
 # dataset and loader
 
@@ -36,15 +67,23 @@ import torch
 from torch.nn import functional as F
 import pandas as pd
 class ProteinDataset(torch.utils.data.Dataset):
-    def __init__(self,path):
-        self.df = pd.read_csv(path)
-
+    def __init__(self,path,transform='oneHot'):
+        self.df        = pd.read_csv(path)
+        if type(transform) == str:
+            self.transform = transform.lower()
+        else:
+            self.transform = transform
+        
     def __getitem__(self,idx):
         item = self.df.iloc[idx]
         x = item['seq']
         y = item['label']
         
-        x = self.seq2oneHot(x)
+        if self.transform == 'onehot':
+            x = self.seq2oneHot(x)
+        elif self.transform is None:
+            x = self.seq2int(x)
+            
         y = torch.tensor(y)
         # y = self.label2oneHot(y)
         return x,y
@@ -52,44 +91,26 @@ class ProteinDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.df)
     
-    def seq2oneHot(self,seq):
+    def seq2int(self,seq):
         seq2int = [ vocab_map[x] for x in list(seq) ]
         seq2int = torch.tensor(seq2int)
+        return seq2int
+    
+    def seq2oneHot(self,seq): # 'ABCDE..' -> OneHot (10,20) 
+        seq2int = self.seq2seq_int(seq)
         oneHot = F.one_hot(seq2int,num_classes=len(vocab_map) )
         return oneHot
     
     def label2oneHot(self,label):
         return F.one_hot(torch.tensor(label),num_classes=2)
     
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-trdt  = ProteinDataset('./data/split/train.csv')
-valdt = ProteinDataset('./data/split/val.csv')
+trdt  = ProteinDataset('./data/split/train.csv',transform=transform)
+valdt = ProteinDataset('./data/split/val.csv'  ,transform=transform)
+tedt  = ProteinDataset('./data/split/test.csv' ,transform=transform)
 
 trdl  = torch.utils.data.DataLoader(trdt, batch_size=64, num_workers=4)
 valdl  = torch.utils.data.DataLoader(valdt, batch_size=64, num_workers=4)
-
-# settings
-
-model = args.model.strip().lower()
-
-from models import *
-
-model = model.lower()
-if model.startswith('maxfil'):
-    model = MaxFilterCNN().to(device)
-elif model.startswith('resnet'):
-    model = ResNet().to(device)
-elif model.startswith('resnext'):
-    model = ResNext().to(device)
-elif model.startswith('attn'):
-    model = attns().to(device)
-elif model.startswith('lstm'):
-    model = lstm().to(device)
-    
-loss = nn.CrossEntropyLoss()
-params = [p for p in model.parameters() if p.requires_grad]
-opt  = torch.optim.Adam(params)
+tedl  = torch.utils.data.DataLoader(tedt, batch_size=64, num_workers=4)
 
 
 # train/validate

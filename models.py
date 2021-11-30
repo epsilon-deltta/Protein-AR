@@ -108,6 +108,30 @@ class lstm(nn.Module):
         x        = x.squeeze()
         x        = self.fc(x)
         return x
+
+    
+# lstm0: /wo oneHot encoding
+import torchvision
+
+### x: b,10,20
+from torch import nn
+class lstm0(nn.Module):
+    def __init__(self):
+        super(lstm0,self).__init__()
+        self.lstm0 = nn.LSTM(input_size = 1, hidden_size = 10,num_layers=1, batch_first=True)
+        self.lstm1 = nn.LSTM(input_size = 10, hidden_size = 10,num_layers=1, batch_first=True)
+        self.fc = nn.Linear(10,2)
+        
+    def forward(self,x):
+        x        = x.to(torch.float)
+        
+        x        = x.unsqueeze(-1)
+        x,(h,c)  = self.lstm0(x)
+        al,(x,c) = self.lstm1(x)
+        x        = x.transpose(0,1)
+        x        = x.squeeze()
+        x        = self.fc(x)
+        return x
         
 # self-attn
 
@@ -133,5 +157,30 @@ class attns(nn.Module):
         x = self.attn1(x)+x
         x = self.flat(x)
         x = self.fc(x)
+        return x
+        
+import torchvision
+
+### x: b,10,20
+from torch import nn
+class attns0(nn.Module):
+    def __init__(self):
+        super(attns0,self).__init__()
+        self.attn0 = nn.TransformerEncoderLayer(d_model=1, nhead=1,batch_first=True)
+        self.attn1 = nn.TransformerEncoderLayer(d_model=1, nhead=1,batch_first=True)
+        self.flat  = nn.Flatten()
+        self.fc    = nn.Sequential(
+            nn.Linear(10,10),
+            nn.ReLU(),
+            nn.Linear(10,2)
+        )
+        
+    def forward(self,x):
+        x = x.to(torch.float) # b,10
+        x = x.unsqueeze(-1)   # b,10,1
+        x = self.attn0(x)+x   # b,10,1
+        x = self.attn1(x)+x   # b,10,1
+        x = self.flat(x)      # b,10
+        x = self.fc(x)        # b,2
         return x
         
