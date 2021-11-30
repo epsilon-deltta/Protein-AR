@@ -184,6 +184,34 @@ class attns0(nn.Module):
         x = self.fc(x)        # b,2
         return x
         
+import torchvision
+
+# attns1
+### x: b,10,20
+from torch import nn
+class attns1(nn.Module):
+    def __init__(self):
+        super(attns1,self).__init__()
+        self.emb   = nn.Embedding(20,20)
+        self.attn0 = nn.TransformerEncoderLayer(d_model=20, nhead=4,batch_first=True)
+        self.attn1 = nn.TransformerEncoderLayer(d_model=20, nhead=4,batch_first=True)
+        self.flat  = nn.Flatten()
+        self.fc    = nn.Sequential(
+            nn.Linear(200,100),
+            nn.ReLU(),
+            nn.Linear(100,2)
+        )
+        
+    def forward(self,x):
+
+        x = self.emb(x)       # b,10,20
+        x = self.attn0(x)+x   # b,10,20
+        x = self.attn1(x)+x   # b,10,20
+        x = self.flat(x)      # b,200
+        x = self.fc(x)        # b,2
+        return x
+        
+
 def get_model(model:str= 'attn'):
     model = model.lower()
     transform ='onehot'
@@ -204,6 +232,9 @@ def get_model(model:str= 'attn'):
         elif model == 'attns0':
             transform = None
             model = attns0()
+        elif model == 'attns1':
+            transform = None
+            model = attns1()
     elif model.startswith('lstm'):
         if model == 'lstm':
             model = lstm()
