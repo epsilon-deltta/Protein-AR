@@ -132,6 +132,27 @@ class lstm0(nn.Module):
         x        = x.squeeze()
         x        = self.fc(x)
         return x
+# lstm1
+# lstm: /w oneHot encoding
+
+### x: b,10,20
+from torch import nn
+class lstm1(nn.Module):
+    def __init__(self):
+        super(lstm1,self).__init__()
+        self.emb   = nn.Embedding(20,20)
+        self.lstm0 = nn.LSTM(input_size = 20, hidden_size = 20,num_layers=1, batch_first=True)
+        self.lstm1 = nn.LSTM(input_size = 20, hidden_size = 20,num_layers=1, batch_first=True)
+        self.fc = nn.Linear(20,2)
+        
+    def forward(self,x):
+        x        = self.emb(x)
+        x,(h,c)  = self.lstm0(x)
+        al,(x,c) = self.lstm1(x)
+        x        = x.transpose(0,1)
+        x        = x.squeeze()
+        x        = self.fc(x)
+        return x
         
 # self-attn
 
@@ -241,6 +262,9 @@ def get_model(model:str= 'attn'):
             transform = 'onehot'
         elif model == 'lstm0':
             model = lstm0()
+            transform = None
+        elif model == 'lstm1':
+            model = lstm1()
             transform = None
     else:
         raise ValueError(f"There is no '{model}' ")
