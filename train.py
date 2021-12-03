@@ -7,18 +7,22 @@ parser = argparse.ArgumentParser("Train datasets",epilog=exam_code)
 
 # parser.add_argument('-d'  ,'--dt'      ,default='pf'      ,metavar='{pf,bln}' , help='Dataset')
 parser.add_argument('-m'  ,'--model'   ,default='attns' ,metavar='{...}'    ,help='model name')
+parser.add_argument('--batch_size'   ,default=None,type=int     ,help='batch size')
 
 args = parser.parse_args()
-
-# model load and settings
 from models import *
-
 model = args.model.lower()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model,transform = get_model(model)
+# model load
+model,config = get_model(model)
 model = model.to(device)
 
+# config
+transform = config['transform'] 
+batch_size = config['batch_size'] if args.batch_size is None else args.batch_size
+
+# settings
 loss = nn.CrossEntropyLoss()
 params = [p for p in model.parameters() if p.requires_grad]
 opt  = torch.optim.Adam(params)
@@ -29,11 +33,11 @@ from dataset import ProteinDataset
     
 trdt  = ProteinDataset('./data/split/train.csv',transform=transform)
 valdt = ProteinDataset('./data/split/val.csv'  ,transform=transform)
-tedt  = ProteinDataset('./data/split/test.csv' ,transform=transform)
+# tedt  = ProteinDataset('./data/split/test.csv' ,transform=transform)
 
-trdl  = torch.utils.data.DataLoader(trdt, batch_size=64, num_workers=4)
-valdl  = torch.utils.data.DataLoader(valdt, batch_size=64, num_workers=4)
-tedl  = torch.utils.data.DataLoader(tedt, batch_size=64, num_workers=4)
+trdl  = torch.utils.data.DataLoader(trdt, batch_size=batch_size, num_workers=4)
+valdl  = torch.utils.data.DataLoader(valdt, batch_size=batch_size, num_workers=4)
+# tedl  = torch.utils.data.DataLoader(tedt, batch_size=batch_size, num_workers=4)
 
 
 # train/validate
@@ -78,7 +82,8 @@ for i in range(100):
         best_model = copy.deepcopy(model)
     if i == min(val_losses,key=val_losses.get)+patience:
         break
-        
+
+# save
 import os
 model_name = f"{best_model.__str__().split('(')[0]}_{max(val_losses)}.pt"
 model_path = os.path.join('./models',model_name) 

@@ -326,9 +326,36 @@ class attns2(nn.Module):
         x = self.fc(x)        # b,2
         return x
 
+# vit0
+
+import torchvision
+import timm
+### x: b,10,20
+from torch import nn
+from torchvision import transforms
+
+class vit0(nn.Module):
+    def __init__(self):
+        super(vit0,self).__init__()
+
+        self.transform = transforms.Compose([
+            transforms.Resize(size = (224,224),interpolation=transforms.InterpolationMode.BICUBIC,max_size=None, antialias=None),
+            transforms.Normalize(mean=[0.5000, 0.5000, 0.5000],std=[0.5000, 0.5000, 0.5000] )
+        ])
+        self.backbone =  timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=2)
+
+    def forward(self,x):
+        x = x.to(torch.float)
+        x = torch.stack([x,x,x],dim=1)
+        x = self.transform(x)
+        x = self.backbone(x)
+        return x
+
+
 def get_model(model:str= 'attn'):
     model = model.lower()
     transform ='onehot'
+    batch_size = 64
     if model.startswith('maxfil'):
         model = MaxFilterCNN()
         transform = 'onehot'
@@ -365,6 +392,13 @@ def get_model(model:str= 'attn'):
         elif model == 'lstm2':
             model = lstm2()
             transform = None
+            
+    elif model.startswith('vit'):
+        if model == 'vit0':
+            model = vit0()
+            transform = 'onehot'
+            batch_size = 16
     else:
         raise ValueError(f"There is no '{model}' ")
-    return model,transform
+    config = {'transform':transform,'batch_size':batch_size}
+    return model,config
