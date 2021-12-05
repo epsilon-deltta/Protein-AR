@@ -1,5 +1,5 @@
 import torch
-def train(dl,model,lossf,opt):
+def train(dl,model,lossf,opt,device='cuda'):
     model.train()
     for x,y in dl:
         x,y = x.to(device),y.to(device)
@@ -10,7 +10,7 @@ def train(dl,model,lossf,opt):
         loss.backward()
         opt.step()
 
-def test(dl,model,lossf,epoch=None):
+def test(dl,model,lossf,epoch=None,exist_acc=True,device='cuda'):
     model.eval()
     size, acc , losses = len(dl.dataset) ,0,0
     with torch.no_grad():
@@ -18,20 +18,25 @@ def test(dl,model,lossf,epoch=None):
             x,y = x.to(device),y.to(device)
             pre = model(x)
             loss = lossf(pre,y)
-
-            acc += (pre.argmax(1)==y).type(torch.float).sum().item()
+            
+            if exist_acc: 
+                acc += (pre.argmax(1)==y).type(torch.float).sum().item()
             losses += loss.item()
-    accuracy = round(acc/size,4)
+    if exist_acc:
+        accuracy = round(acc/size,4)
+    else:
+        accuracy = None
     val_loss = round(losses/size,6)
     print(f'[{epoch}] acc/loss: {accuracy}/{val_loss}')
     return accuracy,val_loss
 
 import copy
-def run(trdl,valdl,model,loss,opt,epoch=100,patience = 5):
+def run(trdl,valdl,model,loss,opt,epoch=100,patience = 5,exist_acc=True,device='cuda'):
     val_losses = {0:1}
+    model = model.to(device)
     for i in range(epoch):
-        train(trdl,model,loss,opt)
-        acc,val_loss = test(valdl,model,loss,i)
+        train(trdl,model,loss,opt,device=device)
+        acc,val_loss = test(valdl,model,loss,epoch=i,exist_acc=exist_acc,device=device)
 
 
         if min(val_losses.values() ) > val_loss:
@@ -42,27 +47,14 @@ def run(trdl,valdl,model,loss,opt,epoch=100,patience = 5):
     return best_model
 
 if __name__ == '__main__':
-    import argparse
-    exam_code = '''
-    e.g)  
-    python train.py -m attn
-    '''
-    parser = argparse.ArgumentParser("Train datasets",epilog=exam_code)   
 
-    # parser.add_argument('-d'  ,'--dt'      ,default='pf'      ,metavar='{pf,bln}' , help='Dataset')
-    parser.add_argument('-m'  ,'--model'   ,default='attns' ,metavar='{...}'    ,help='model name')
-    parser.add_argument('--batch_size'   ,default=None,type=int     ,help='batch size')
-    args = parser.parse_args()
-    
+    from options.train_op import args
     from models import *
-    model = args.model.lower()
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # model load
-    model,config = get_model(model)
-    model = model.to(device)
-
-    # config
+    model,config = get_model(args.model)
+    
+    # re-config
     transform = config['transform'] 
     batch_size = config['batch_size'] if args.batch_size is None else args.batch_size
 
@@ -85,7 +77,7 @@ if __name__ == '__main__':
 
 
     # train/validate
-    run(trdl,valdl,model,loss,opt)
+    run(trdl,valdl,model,loss,opt,device=args.device)
 
     # save
     import os
