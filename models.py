@@ -350,12 +350,95 @@ class vit0(nn.Module):
         x = self.transform(x)
         x = self.backbone(x)
         return x
+# vit1
+from timm.models import vision_transformer as vt
 
+### x: b,10,20
+from torch import nn
+class vit1(nn.Module):
+    def __init__(self):
+        super(vit1,self).__init__()
+        self.vit = vt.VisionTransformer(img_size=(10,20),patch_size=5,num_classes=2,embed_dim=384,in_chans=1,depth=4)
+        
+    def forward(self,x):
+        x = x.to(torch.float)
+        x = x.unsqueeze(1)
+        x = self.vit(x)
+        return x
+
+    
+# AE 
+## ae0
+from torch import nn
+def get_conv(in_n,out_n,kernel_size=(3, 3), stride=(1, 1),activation=True):
+    c = nn.Conv2d(in_n,out_n,kernel_size=kernel_size,stride=stride)
+    b = nn.BatchNorm2d(out_n)
+    if activation == True:
+        r = nn.ReLU()
+        return nn.Sequential(c,b,r)
+    else:
+        return nn.Sequential(c,b)
+
+def get_deconv(in_n,out_n,kernel_size=(3, 3), stride=(1, 1),activation=True):
+    dc = nn.ConvTranspose2d(in_n,out_n,kernel_size=kernel_size, stride=stride)
+    b  = nn.BatchNorm2d(out_n)
+    r  = nn.ReLU()
+    combo = nn.Sequential(dc,b,r)
+    return combo
+
+class encoder0(nn.Module):
+    def __init__(self):
+        super(encoder0,self).__init__()
+        e0 = get_conv(1,8)
+        e1 = get_conv(8,16)
+        e2 = get_conv(16,32,activation=False)
+        e3 = nn.AdaptiveAvgPool2d((2,2))
+        e4  = nn.Flatten()
+        self.enc = nn.Sequential(e0,e1,e2,e3,e4)
+        out_node = self.enc(torch.rand(1,1,10,20)).shape[-1]
+        e5  = nn.Linear(out_node,64)
+        self.enc.add_module('lin',e5)
+    def forward(self,x):
+        x = x.unsqueeze(1) # b,10,20 > b,1,10,20
+        x = self.enc(x)
+        return x 
+
+from torch.nn import functional as F
+class decoder0(nn.Module):
+    def __init__(self):
+        super(decoder0,self).__init__()
+        d0 = get_deconv(32,16,stride=(1,1))
+        d1 = get_deconv(16,8,stride=(2,2))
+        d2 = get_deconv(8,8,stride=(1,2))
+        self.d3 = nn.Conv2d(8,1,kernel_size=(3,3),stride=1)
+        # d4 = nn.Conv2d(8,1)
+        self.dec = nn.Sequential(d0,d1,d2)
+    def forward(self,x):
+        x = x.view(x.size()[0],32,1,2)
+        x = self.dec(x)
+        x = F.interpolate(x,(12,22))
+        x = self.d3(x)
+        x = x.squeeze()
+        return x 
+
+from torch.nn import functional as F
+class ae0(nn.Module):
+    def __init__(self):
+        super(ae0,self).__init__()
+        self.en = encoder0()
+        self.de = decoder0()
+    def forward(self,x):
+        x = x.to(torch.float)
+        x = self.en(x)
+        x = self.de(x)
+        return x 
 
 def get_model(model:str= 'attn'):
     model = model.lower()
     transform ='onehot'
     batch_size = 64
+    loss = 'crossentropy'
+    exist_acc = True 
     if model.startswith('maxfil'):
         model = MaxFilterCNN()
         transform = 'onehot'
@@ -398,7 +481,17 @@ def get_model(model:str= 'attn'):
             model = vit0()
             transform = 'onehot'
             batch_size = 16
+        elif model == 'vit1':
+            model = vit1()
+            transform = 'onehot'
+            batch_size=16
+    elif model.startswith('ae'):
+        if model == 'ae0':
+            model = ae0()
+            transform = 'ae'
+            loss = 'mse'
+            exist_acc = False
     else:
         raise ValueError(f"There is no '{model}' ")
-    config = {'transform':transform,'batch_size':batch_size}
+    config = {'transform':transform,'batch_size':batch_size,'loss':loss,'exist_acc':exist_acc}
     return model,config
