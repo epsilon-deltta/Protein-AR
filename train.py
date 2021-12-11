@@ -44,7 +44,7 @@ def run(trdl,valdl,model,loss,opt,epoch=100,patience = 5,exist_acc=True,device='
             best_model = copy.deepcopy(model)
         if i == min(val_losses,key=val_losses.get)+patience:
             break
-    return best_model
+    return best_model,val_losses
 
 if __name__ == '__main__':
 
@@ -55,16 +55,17 @@ if __name__ == '__main__':
     model,config = get_model(args.model)
     
     # re-config
-    transform = config['transform'] 
+    transform  = config['transform'] 
     batch_size = config['batch_size'] if args.batch_size is None else args.batch_size
-
+    loss       = config['loss'] if args.loss is None else args.loss
     # settings
-    loss = nn.CrossEntropyLoss()
+    from utils import get_loss
+    loss = get_loss(name=loss)
     params = [p for p in model.parameters() if p.requires_grad]
     opt  = torch.optim.Adam(params)
 
     # dataset and loader
-
+    
     from dataset import ProteinDataset
 
     trdt  = ProteinDataset('./data/split/train.csv',transform=transform)
@@ -77,10 +78,10 @@ if __name__ == '__main__':
 
 
     # train/validate
-    run(trdl,valdl,model,loss,opt,device=args.device)
+    best_model,val_losses = run(trdl,valdl,model,loss,opt,device=args.device,exist_acc=config['exist_acc'])
 
     # save
     import os
     model_name = f"{best_model.__str__().split('(')[0]}_{max(val_losses)}.pt"
     model_path = os.path.join('./models',model_name) 
-    # torch.save(best_model.state_dict(),model_path)
+    torch.save(best_model.state_dict(),model_path)

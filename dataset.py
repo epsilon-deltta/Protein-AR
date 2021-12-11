@@ -21,13 +21,20 @@ import torch
 from torch.nn import functional as F
 import pandas as pd
 class ProteinDataset(torch.utils.data.Dataset):
-    def __init__(self,path,transform='oneHot'):
+    def __init__(self,path,transform='oneHot',only=None):
         self.df        = pd.read_csv(path)
         if type(transform) == str:
             self.transform = transform.lower()
         else:
             self.transform = transform
         
+        if self.transform == 'ae':
+            if only is None:
+                only = 1
+        
+        if only is not None:
+            self.df = self.df[self.df.label == only]
+            
     def __getitem__(self,idx):
         item = self.df.iloc[idx]
         x = item['seq']
@@ -37,7 +44,11 @@ class ProteinDataset(torch.utils.data.Dataset):
             x = self.seq2oneHot(x)
         elif self.transform is None:
             x = self.seq2int(x)
-            
+        elif self.transform == 'ae':
+            x = self.seq2oneHot(x)
+            x = x.to(torch.float)
+            y = x 
+            return x,y
         y = torch.tensor(y)
         # y = self.label2oneHot(y)
         return x,y
