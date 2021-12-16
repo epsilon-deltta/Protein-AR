@@ -74,14 +74,14 @@ m_path     = args.model
 model_name = os.path.basename(m_path).split('_')[0]
 model_name = model_name.lower()
 
-model,transform = get_model(model_name)
+model,config = get_model(model_name)
 model = model.to(device)
 
 seq_list = get_seqStr(path=args.dataset)
 
-if transform == 'onehot':
+if config['transform'] == 'onehot':
     x = seq_list2oneHot(seq_list).to(device)
-elif transform is None:
+elif config['transform'] is None:
     x = seq_list2int(seq_list).to(device)
 
 model.load_state_dict(torch.load(m_path))
