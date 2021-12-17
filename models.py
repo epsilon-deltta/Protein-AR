@@ -433,6 +433,24 @@ class ae0(nn.Module):
         x = self.de(x)
         return x 
 
+# ae1 (w/ classification branch)
+class ae1(nn.Module):
+    def __init__(self):
+        super(ae1,self).__init__()
+        self.en = encoder0()
+        self.de = decoder0()
+        self.flat = nn.Flatten()
+        self.fc   = nn.Sequential(nn.Linear(200,100),nn.Linear(100,2))
+    def forward(self,x):
+        x = x.to(torch.float)
+        f = x
+        x = self.en(x)
+        x = self.de(x)
+        x = x - f
+        x = self.flat(x)
+        x = self.fc(x)
+        return x 
+
 def get_model(model:str= 'attn'):
     model = model.lower()
     transform ='onehot'
@@ -491,6 +509,8 @@ def get_model(model:str= 'attn'):
             transform = 'ae'
             loss = 'mse'
             exist_acc = False
+        elif model == 'ae1':
+            model = ae1()
     else:
         raise ValueError(f"There is no '{model}' ")
     config = {'transform':transform,'batch_size':batch_size,'loss':loss,'exist_acc':exist_acc}
