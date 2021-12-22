@@ -58,11 +58,12 @@ if __name__ == '__main__':
     transform  = config['transform'] 
     batch_size = config['batch_size'] if args.batch_size is None else args.batch_size
     loss       = config['loss'] if args.loss is None else args.loss
+    lr         = 0.001 if args.lr is None else args.lr
     # settings
     from utils import get_loss
-    loss = get_loss(name=loss)
+    loss = get_loss(name=loss,task_type='cls')
     params = [p for p in model.parameters() if p.requires_grad]
-    opt  = torch.optim.Adam(params)
+    opt  = torch.optim.Adam(params,lr=lr)
 
     # dataset and loader
     

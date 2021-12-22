@@ -11,5 +11,7 @@ parser.add_argument('-p'  ,'--path'       ,default='./ae/models/ae0_80.pt'      
 parser.add_argument('-th', '--threshold'  ,default=0.004,type=float , help='Threshold of AE')
 parser.add_argument('--dataset_path'      ,default='./data/split/test.csv'  , help='test dataset path')
 parser.add_argument('-s','--save'         ,default=True, type=bool  , help='whether to save')
+
+
 args = parser.parse_args()
 
