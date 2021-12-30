@@ -16,7 +16,7 @@ from models import *
 model = args.model.lower()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model,transfrom = get_model(model)
+model,transform = get_model(model)
 model = model.to(device)
 
 loss = nn.CrossEntropyLoss()
