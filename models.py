@@ -231,7 +231,79 @@ class attns1(nn.Module):
         x = self.flat(x)      # b,200
         x = self.fc(x)        # b,2
         return x
+
+# attms2
+from torch import nn
+import torch
+class PostionalEncoding(nn.Module):
+    """
+    compute sinusoid encoding.
+    """
+
+    def __init__(self, d_model, max_len):
+        """
+        constructor of sinusoid encoding class
+        :param d_model: dimension of model
+        :param max_len: max sequence length
+        :param device: hardware device setting
+        """
+        super(PostionalEncoding, self).__init__()
+
+        # same size with input matrix (for adding with input matrix)
+        self.encoding = torch.zeros(max_len, d_model)
+        self.encoding.requires_grad = False  # we don't need to compute gradient
+
+        pos = torch.arange(0, max_len)
+        pos = pos.float().unsqueeze(dim=1)
+        # 1D => 2D unsqueeze to represent word's position
+
+        _2i = torch.arange(0, d_model, step=2).float()
+        # 'i' means index of d_model (e.g. embedding size = 50, 'i' = [0,50])
+        # "step=2" means 'i' multiplied with two (same with 2 * i)
+
+        self.encoding[:, 0::2] = torch.sin(pos / (10000 ** (_2i / d_model)))
+        self.encoding[:, 1::2] = torch.cos(pos / (10000 ** (_2i / d_model)))
+        # compute positional encoding to consider positional information of words
+
+    def forward(self, x):
+        # self.encoding
+        # [max_len = 512, d_model = 512]
+        if x.dim()==3:
+            batch_size, seq_len, emb_size = x.size()
+        elif x.dim()==2:
+            batch_size, seq_len= x.size()
+        # [batch_size = 128, seq_len = 30]
+
+        return self.encoding[:seq_len, :]
+    def get_emb(self):
+        return self.encoding
+    
+### x: b,10,20
+from torch import nn
+class attns2(nn.Module):
+    def __init__(self):
+        super(attns2,self).__init__()
+        self.emb   = nn.Embedding(20,20)
+        self.pe    = PostionalEncoding(max_len=10,d_model=20)
+        # self.drop_out = nn.Dropout(p=drop_prob)
+        self.attn0 = nn.TransformerEncoderLayer(d_model=20, nhead=4,batch_first=True)
+        self.attn1 = nn.TransformerEncoderLayer(d_model=20, nhead=4,batch_first=True)
+        self.flat  = nn.Flatten()
+        self.fc    = nn.Sequential(
+            nn.Linear(200,100),
+            nn.ReLU(),
+            nn.Linear(100,2)
+        )
         
+    def forward(self,x):
+        
+        x = self.emb(x)       # b,10,20
+        x = x 
+        x = self.attn0(x)+x   # b,10,20
+        x = self.attn1(x)+x   # b,10,20
+        x = self.flat(x)      # b,200
+        x = self.fc(x)        # b,2
+        return x
 
 def get_model(model:str= 'attn'):
     model = model.lower()
@@ -256,6 +328,9 @@ def get_model(model:str= 'attn'):
         elif model == 'attns1':
             transform = None
             model = attns1()
+        elif model == 'attns2':
+            transform = None
+            model = attns2()
     elif model.startswith('lstm'):
         if model == 'lstm':
             model = lstm()
