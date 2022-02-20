@@ -108,7 +108,7 @@ if __name__ == '__main__':
         
         model,config = get_model(model_name)
         model = model.to(device)
-
+        
          # config
         transform = config['transform'] 
         transform = 'onehot'
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         params = [p for p in model.parameters() if p.requires_grad]
         opt  = torch.optim.Adam(params) 
 
-
+        
         model.load_state_dict(torch.load(m_path))
         
         result  = evaluate(tedl,model,loss)
